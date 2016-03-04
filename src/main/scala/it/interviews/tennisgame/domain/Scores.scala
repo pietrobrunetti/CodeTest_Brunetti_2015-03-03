@@ -3,7 +3,6 @@ package it.interviews.tennisgame.domain
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-
 trait Scores {
   def getStringRep:String
 }

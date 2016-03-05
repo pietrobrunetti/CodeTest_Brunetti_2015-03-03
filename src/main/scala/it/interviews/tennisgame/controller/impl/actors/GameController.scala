@@ -1,4 +1,4 @@
-package it.interviews.tennisgame.controller.actors
+package it.interviews.tennisgame.controller.impl.actors
 
 import akka.actor.FSM
 import it.interviews.tennisgame.controller.actors
@@ -13,9 +13,9 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
   startWith(Idle, Uninitialized)
 
   when(Idle) {
-    case Event(SetTarget(ref), Uninitialized) =>
-      log.info("received Event "+SetTarget.getClass.getName+" and Data "+Uninitialized.getClass.getName)
-      stay using Todo(ref, Vector.empty)
+    case Event(InitGame(p1,p2), Uninitialized) =>
+      log.info("received Event "+InitGame.getClass.getName+" and Data "+Uninitialized.getClass.getName)
+      goto(Initial) using //stay using Todo(ref, Vector.empty)
   }
 
   // transition elided ...

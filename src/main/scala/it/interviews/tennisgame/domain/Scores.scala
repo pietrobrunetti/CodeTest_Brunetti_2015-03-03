@@ -9,6 +9,7 @@ trait Scores {
 
 abstract case class Points(val sym:Option[Symbol],val value: Int) {
   require(value>=0, s"Negative point value inserted: ${value}.")
+  def ++ = value+=1
 }
 abstract case class PlayerIdWithPoints(val playerId:String, val points:Points)
 abstract case class GameStateData(val scores:Scores,val pPoints:PlayerIdWithPoints*) {

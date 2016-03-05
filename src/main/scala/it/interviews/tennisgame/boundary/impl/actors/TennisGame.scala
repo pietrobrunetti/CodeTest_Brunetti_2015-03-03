@@ -1,6 +1,6 @@
 package it.interviews.tennisgame.boundary.impl.actors
 
-import akka.actor.{Actor, Props}
+import akka.actor.Props
 import it.interviews.tennisgame.boundary.{PlayerActor, GameActor}
 import it.interviews.tennisgame.controller.impl.actors.GameController
 import it.interviews.tennisgame.domain.{GameStateData, Points, Scores}
@@ -10,7 +10,7 @@ import it.interviews.tennisgame.storage.Scoreboard
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-class TennisGame extends Actor with GameActor{
+class TennisGame extends GameActor{
 
   val ctrl = context.actorOf(Props[GameController],"GameController")
   val scorer = context.actorOf(Props[Scoreboard],"Scoreboard")
@@ -25,7 +25,7 @@ class TennisGame extends Actor with GameActor{
   }
 
   override protected def init(players: PlayerActor*): Unit = {
-    players.apply(2).asInstanceOf[TennisPlayer]
+
   }
 
   override def stop: Unit = ??? //TODO dispose controller and scoreboard and terminate it

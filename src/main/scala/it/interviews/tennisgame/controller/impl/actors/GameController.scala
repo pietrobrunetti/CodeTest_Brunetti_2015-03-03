@@ -1,9 +1,9 @@
 package it.interviews.tennisgame.controller.impl.actors
 
-import akka.actor.FSM
-import it.interviews.tennisgame.controller.actors
-import it.interviews.tennisgame.domain.impl.actors
+import akka.actor.{FSM}
+import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors._
+import it.interviews.tennisgame.dal.Scoreboard
 
 /**
   * Created by Pietro Brunetti on 04/03/16.
@@ -13,16 +13,32 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
   startWith(Idle, Uninitialized)
 
   when(Idle) {
-    case Event(InitGame(p1,p2), Uninitialized) =>
-      log.info("received Event "+InitGame.getClass.getName+" and Data "+Uninitialized.getClass.getName)
-      goto(Initial) using //stay using Todo(ref, Vector.empty)
+    case Event(GameConfig(p1:String,p2:String,scorer:Scoreboard), Uninitialized) =>
+      goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1,Love()),TennisPlayerIdWithPoints(p2,Love())),scorer)
   }
 
-  // transition elided ...
+  when(Initial) {
+    case Event(GameStarted,fsmStateData) => goto(UpTo40) using fsmStateData
+  }
 
-  when(Active, stateTimeout = 1 second) {
-    case Event(Flush | StateTimeout, t: Todo) =>
-      goto(Idle) using t.copy(queue = Vector.empty)
+  when(UpTo40) {
+    case Event(LastPointMadeBy(pId:String),MatchSnapshot(UpTo40Score(p1,p2),scorer)) =>
+      //updateInternalState:
+      val tmpScores = TennisScores(p1,p2,pId)
+      Seq(p1,p2).map(item => item match {case item.playerId == pId => TennisScores})
+      p1.points.value < 3 && p2.points.value
+      //se punti di entrambi < 3 => rimango in questo stato ed aggiorno
+      //se punti >= 3 => cambio stato:
+                            //se diff assoluta >= 2 => won
+                            //se == => deuce
+                            // => advantage
+  }
+
+/*
+  when(Deuce) {
+  }
+
+  when(Advantage) {
   }
 
   // unhandled elided ...
@@ -45,23 +61,12 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
     }
   }
 
-  /*
-   * The transition callback is a partial function which takes as input a pair of states—the current and the next state.
-   * The FSM trait includes a convenience extractor for these in form of an arrow operator,
-   * which conveniently reminds you of the direction of the state change which is being matched.
-   * During the state change, the old state data is available via stateData as shown,
-   * and the new state data would be available as nextStateData.
-   */
   onTransition {
-    case Active -> Idle =>
-      //old data
-      stateData match {
-        case Todo(ref, queue) => ref ! Batch(queue)
-        case _                => // nothing to do
-      }
-      //nextStateData
+    case Idle -> Initial =>
+      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),scorer) => scorer.self ! SetPlayerInfo(p1.playerId,p2.playerId)}
 
-      sender() ! "transition"
+    case Initial -> UpTo40 =>
+      stateData match {case MatchSnapshot(UpTo40Score(p1,p2),scorer) => scorer.self ! SetPlayerInitialPoints(p1,p2)}
 
   }
 
@@ -70,8 +75,9 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
     case StopEvent(FSM.Shutdown, state, data)       => log.info("shutdown")
     case StopEvent(FSM.Failure(cause), state, data) => log.info("Failure!! {} {}",stateName.toString, stateData.toString)
   }
+*/
 
   initialize()
-}
 
 }
+

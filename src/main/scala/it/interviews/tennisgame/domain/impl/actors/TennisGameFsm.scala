@@ -1,6 +1,9 @@
 package it.interviews.tennisgame.domain.impl.actors
 
 import akka.actor.ActorRef
+import it.interviews.tennisgame.dal.impl.actors.TennisScoreboard
+import it.interviews.tennisgame.domain.impl.{TennisPlayerIdWithPoints, TennisScores}
+import it.interviews.tennisgame.dal.Scoreboard
 
 /**
   * Created by Pietro Brunetti on 04/03/16.
@@ -17,4 +20,5 @@ case object Error extends TennisGameFsmState
 
 sealed trait TennisGameFsmData
 case object Uninitialized extends TennisGameFsmData
-case class Todo(target: ActorRef, queue: Seq[Any]) extends TennisGameFsmData
+case class MatchSnapshot(actualScores:TennisScores, scorer: Scoreboard) extends TennisGameFsmData
+

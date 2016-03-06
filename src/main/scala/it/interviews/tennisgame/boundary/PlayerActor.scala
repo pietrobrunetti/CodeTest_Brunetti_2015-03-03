@@ -1,13 +1,19 @@
 package it.interviews.tennisgame.boundary
 
 import it.interviews.tennisgame.domain.Points
+import it.interviews.tennisgame.domain.impl.{Love, TennisPoints}
 
 /**
   * Created by Pietro Brunetti on 05/03/16.
   */
 trait PlayerActor extends ParticipantActor{
 
-  override protected def retrievePlayerPoints(p:PlayerActor):Points = super.retrievePlayerPoints(this)
+  var personalPoints:Points = null
+
+  def playerId = self.path.name
+
+  protected def setInitialPoints(p:Points) = personalPoints = p
+  protected def retrievePlayerPoints(p:PlayerActor):Points
   protected def makePoint
   protected def joinGame
 }

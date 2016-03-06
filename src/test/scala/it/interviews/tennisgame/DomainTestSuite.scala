@@ -101,6 +101,25 @@ class DomainTestSuite extends FunSpec {
         }
       }
     }
+
+    it("shoud be created following the requirements roles prooven in tests above",DomainTest,TennisScoresTest) {
+      val tp01 = TennisPlayerIdWithPoints("DummyPlayer1", Love())
+      val tp02 = TennisPlayerIdWithPoints("DummyPlayer2", Love())
+      assertResult(UpTo40Score(tp01,tp02))(TennisScores(tp01,tp02))
+
+      val tp03 = TennisPlayerIdWithPoints("DummyPlayer3", Thirty())
+      val tp04 = TennisPlayerIdWithPoints("DummyPlayer4", TennisPoints(None,4))
+      assertResult(WonScore(tp04))(TennisScores(tp03,tp04))
+
+      val tp05 = TennisPlayerIdWithPoints("DummyPlayer5", Forty())
+      val tp06 = TennisPlayerIdWithPoints("DummyPlayer6", Forty())
+      assertResult(DeuceScore(Forty()))(TennisScores(tp05,tp06))
+
+      val tp07 = TennisPlayerIdWithPoints("DummyPlayer7", Forty())
+      val tp08 = TennisPlayerIdWithPoints("DummyPlayer8", TennisPoints(None,4))
+      assertResult(AdvantageScore(tp08))(TennisScores(tp07,tp08))
+    }
+
   }
 
 

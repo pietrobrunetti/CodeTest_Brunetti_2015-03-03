@@ -25,7 +25,14 @@ case class WonScore(val who:TennisPlayerIdWithPoints) extends TennisScores {
 }
 
 object TennisScores {
-  def apply(tpiwp1: TennisPlayerIdWithPoints, tpiwp2: TennisPlayerIdWithPoints):TennisScores = {
+  def apply(tpiwp1: TennisPlayerIdWithPoints, tpiwp2: TennisPlayerIdWithPoints, pointMaker:Option[String]=None):TennisScores = {
+
+    def incOnMatch(p:PlayerIdWithPoints,id:Option[String]):Int = {
+      val effectiveOption = id.getOrElse("")
+      if(effectiveOption == "" || p.playerId != effectiveOption) p.points.value
+      else p.points.value+1
+    }
+    val points = Tuple2(incOnMatch(tpiwp1,pointMaker),incOnMatch(tpiwp2,pointMaker))
 
     def max(p1: TennisPlayerIdWithPoints, p2: TennisPlayerIdWithPoints):Option[TennisPlayerIdWithPoints] =
       p1.points.value match {
@@ -34,16 +41,22 @@ object TennisScores {
         case _ => None
       }
 
-    if(tpiwp1.points.value < 3 && tpiwp2.points.value < 3)
-      UpTo40Score(tpiwp1,tpiwp2)
-    if( Math.abs(tpiwp1.points.value - tpiwp2.points.value) >= 2)
-      WonScore(max(tpiwp1,tpiwp2).get)
-    if(tpiwp1.points.value == tpiwp2.points.value) {
-      tpiwp1.points.value match {
-        case 3 => Forty
-        case greater => TennisPoints(None,greater)
-      }
+    points match {
+      case points if points._1 < 3 && points._2 < 3 =>
+        UpTo40Score(TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
+        TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2)))
+      case points if Math.abs(points._1 - points._2) >= 2 =>
+        WonScore(max(
+          TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
+          TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2))
+        ).get)
+      case points if points._1 == points._2 =>
+        DeuceScore(TennisPoints(points._1))
+      case _ => AdvantageScore(max(
+          TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
+          TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2))
+        ).get)
     }
-    AdvantageScore(max(tpiwp1,tpiwp2).get)
+
   }
 }

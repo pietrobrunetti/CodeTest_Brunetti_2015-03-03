@@ -7,7 +7,7 @@ trait Scores {
   def getStringRep:String
 }
 
-abstract case class Points(val sym:Option[Symbol],val value: Int) {
+abstract case class Points(val value: Int,val sym:Option[Symbol]) {
   require(value>=0, s"Negative point value inserted: ${value}.")
 }
 abstract case class PlayerIdWithPoints(val playerId:String, val points:Points)

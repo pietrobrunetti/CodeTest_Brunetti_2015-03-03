@@ -16,9 +16,8 @@ case object UpTo40 extends TennisGameFsmState
 case object Deuce extends TennisGameFsmState
 case object Advantage extends TennisGameFsmState
 case object Won extends TennisGameFsmState
-case object Error extends TennisGameFsmState
 
 sealed trait TennisGameFsmData
 case object Uninitialized extends TennisGameFsmData
-case class MatchSnapshot(actualScores:TennisScores, scorer: Scoreboard) extends TennisGameFsmData
+case class MatchSnapshot(actualScores:TennisScores, player1Id:String, player2Id:String, scorer: Scoreboard) extends TennisGameFsmData
 

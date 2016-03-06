@@ -1,5 +1,6 @@
 package it.interviews.tennisgame.controller.impl.actors
 
+import akka.actor.FSM.State
 import akka.actor.{FSM}
 import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors._
@@ -14,7 +15,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
 
   when(Idle) {
     case Event(GameConfig(p1:String,p2:String,scorer:Scoreboard), Uninitialized) =>
-      goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1,Love()),TennisPlayerIdWithPoints(p2,Love())),scorer)
+      goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1,Love()),TennisPlayerIdWithPoints(p2,Love())),p1,p2,scorer)
   }
 
   when(Initial) {
@@ -22,62 +23,76 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
   }
 
   when(UpTo40) {
-    case Event(LastPointMadeBy(pId:String),MatchSnapshot(UpTo40Score(p1,p2),scorer)) =>
-      //updateInternalState:
-      val tmpScores = TennisScores(p1,p2,pId)
-      Seq(p1,p2).map(item => item match {case item.playerId == pId => TennisScores})
-      p1.points.value < 3 && p2.points.value
-      //se punti di entrambi < 3 => rimango in questo stato ed aggiorno
-      //se punti >= 3 => cambio stato:
-                            //se diff assoluta >= 2 => won
-                            //se == => deuce
-                            // => advantage
+    case Event(LastPointMadeBy(pId:String),MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer)) =>
+      GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]){
+        TennisScores(p1,p2,Some(pId)) match {
+          case s:UpTo40Score => stay using MatchSnapshot(s,p1Id,p2Id,scorer)
+          case s:DeuceScore => goto(Deuce) using MatchSnapshot(s,p1Id,p2Id,scorer)
+          case s:WonScore => goto(Won) using MatchSnapshot(s,p1Id,p2Id,scorer)
+        }
+      }(stop(FSM.Failure(), stateData))
   }
 
-/*
   when(Deuce) {
+    case Event(LastPointMadeBy(pId:String),MatchSnapshot(DeuceScore(p),p1Id,p2Id,scorer)) =>
+      GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]) {
+        goto(Advantage) using MatchSnapshot(AdvantageScore(TennisPlayerIdWithPoints(pId, TennisPoints(p.value + 1))), p1Id, p2Id, scorer)
+      }(stop(FSM.Failure(), stateData))
   }
 
   when(Advantage) {
+    case Event(LastPointMadeBy(pId:String),MatchSnapshot(AdvantageScore(p),p1Id,p2Id,scorer)) =>
+      GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]) {
+        pId match {
+          case p.playerId => goto(Won) using MatchSnapshot(WonScore(p),p1Id,p2Id,scorer)
+          case _ => goto(Deuce) using MatchSnapshot(DeuceScore(p.points),p1Id,p2Id,scorer)
+        }
+      }(stop(FSM.Failure(), stateData))
   }
-
-  // unhandled elided ...
 
   whenUnhandled {
-    // common code for both states
-    case Event(Queue(obj), t @ Todo(_, v)) =>
-      goto(Active) using t.copy(queue = v :+ obj)
-
     case Event(e, s) =>
       log.warning("received unhandled request {} in state {}/{}", e, stateName, s)
-      //stay
-      goto(actors.Error) using Uninitialized
-  }
-
-  when(actors.Error) {
-    case Event("stop", _) => { log.info("in state {}:Event 'stop'",stateName,stateData)
-      // do cleanup ...
-      stop(FSM.Shutdown,stateData)
-    }
+      stop(FSM.Failure(e), s)
   }
 
   onTransition {
     case Idle -> Initial =>
-      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),scorer) => scorer.self ! SetPlayerInfo(p1.playerId,p2.playerId)}
+      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInfo(p1.playerId,p2.playerId)}
 
     case Initial -> UpTo40 =>
-      stateData match {case MatchSnapshot(UpTo40Score(p1,p2),scorer) => scorer.self ! SetPlayerInitialPoints(p1,p2)}
+      stateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInitialPoints(p1,p2)}
+
+    case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case UpTo40 -> Won => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case Deuce -> Advantage => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case Advantage -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case Advantage -> Won => nextStateData match {
+      case MatchSnapshot(score,p1Id,p2Id,scorer) =>
+        scorer.self ! ScoresUpdate(score)
+        context.parent ! GameFinished
+    }
 
   }
 
   onTermination {
-    case StopEvent(FSM.Normal, state, data)         => log.info("stop in state {} for {}",state,FSM.Normal)
-    case StopEvent(FSM.Shutdown, state, data)       => log.info("shutdown")
+    case StopEvent(FSM.Normal, state, data)         => log.info("Stop in state {} for {}",state,FSM.Normal)
+    case StopEvent(FSM.Shutdown, state, data)       => log.info("Shutdown")
     case StopEvent(FSM.Failure(cause), state, data) => log.info("Failure!! {} {}",stateName.toString, stateData.toString)
   }
-*/
 
   initialize()
 
 }
 
+object GameController {
+
+  def ctrlInputId(id:String, currentFsmData: MatchSnapshot)
+                 (okAction: => State[TennisGameFsmState, TennisGameFsmData])
+                 (errorAction: => State[TennisGameFsmState, TennisGameFsmData]):State[TennisGameFsmState, TennisGameFsmData] = {
+    if (id == currentFsmData.player1Id || id == currentFsmData.player2Id)
+      okAction
+    else errorAction
+  }
+}

@@ -113,7 +113,7 @@ class DomainTestSuite extends FunSpec {
 
     it("shoud be created following the requirements roles prooven in tests above",DomainTest,TennisScoresTest) {
       val tp01 = TennisPlayerIdWithPoints("DummyPlayer1", Love())
-      val tp02 = TennisPlayerIdWithPoints("DummyPlayer2", Love())
+      val tp02 = TennisPlayerIdWithPoints("DummyPlayer2", Forty())
       assertResult(UpTo40Score(tp01,tp02))(TennisScores(tp01,tp02))
 
       val tp03 = TennisPlayerIdWithPoints("DummyPlayer3", Thirty())

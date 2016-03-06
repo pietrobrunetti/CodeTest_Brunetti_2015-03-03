@@ -27,14 +27,14 @@ case class WonScore(val who:TennisPlayerIdWithPoints) extends TennisScores {
 object TennisScores {
   def apply(tpiwp1: TennisPlayerIdWithPoints, tpiwp2: TennisPlayerIdWithPoints, pointMaker:Option[String]=None):TennisScores = {
 
-    def incOnMatch(p:PlayerIdWithPoints,id:Option[String]):Int = {
+    def incOnMatch(p: PlayerIdWithPoints, id: Option[String]): Int = {
       val effectiveOption = id.getOrElse("")
-      if(effectiveOption == "" || p.playerId != effectiveOption) p.points.value
-      else p.points.value+1
+      if (effectiveOption == "" || p.playerId != effectiveOption) p.points.value
+      else p.points.value + 1
     }
-    val points = Tuple2(incOnMatch(tpiwp1,pointMaker),incOnMatch(tpiwp2,pointMaker))
+    val points = Tuple2(incOnMatch(tpiwp1, pointMaker), incOnMatch(tpiwp2, pointMaker))
 
-    def max(p1: TennisPlayerIdWithPoints, p2: TennisPlayerIdWithPoints):Option[TennisPlayerIdWithPoints] =
+    def max(p1: TennisPlayerIdWithPoints, p2: TennisPlayerIdWithPoints): Option[TennisPlayerIdWithPoints] =
       p1.points.value match {
         case v if v > p2.points.value => Some(p1)
         case v if v < p2.points.value => Some(p2)
@@ -42,21 +42,20 @@ object TennisScores {
       }
 
     points match {
-      case points if points._1 < 3 && points._2 < 3 =>
-        UpTo40Score(TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
-        TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2)))
-      case points if Math.abs(points._1 - points._2) >= 2 =>
+      case p if (points._1 <= 3 && points._2 <= 3) && !(points._1 == 3 && points._2 == 3) =>
+        UpTo40Score(TennisPlayerIdWithPoints(tpiwp1.playerId, TennisPoints(points._1)),
+          TennisPlayerIdWithPoints(tpiwp2.playerId, TennisPoints(points._2)))
+      case p if Math.abs(points._1 - points._2) >= 2 =>
         WonScore(max(
-          TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
-          TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2))
+          TennisPlayerIdWithPoints(tpiwp1.playerId, TennisPoints(points._1)),
+          TennisPlayerIdWithPoints(tpiwp2.playerId, TennisPoints(points._2))
         ).get)
-      case points if points._1 == points._2 =>
+      case p if points._1 == points._2 =>
         DeuceScore(TennisPoints(points._1))
       case _ => AdvantageScore(max(
-          TennisPlayerIdWithPoints(tpiwp1.playerId,TennisPoints(points._1)),
-          TennisPlayerIdWithPoints(tpiwp2.playerId,TennisPoints(points._2))
-        ).get)
+        TennisPlayerIdWithPoints(tpiwp1.playerId, TennisPoints(points._1)),
+        TennisPlayerIdWithPoints(tpiwp2.playerId, TennisPoints(points._2))
+      ).get)
     }
-
   }
 }

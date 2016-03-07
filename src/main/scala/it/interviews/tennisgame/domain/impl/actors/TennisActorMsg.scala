@@ -11,7 +11,7 @@ import it.interviews.tennisgame.domain.impl.{TennisScores, TennisPoints, TennisP
 sealed trait GameActorMsg
 
 sealed trait EnvGameActorMsg extends GameActorMsg
-case class InitGame(p1:PlayerActor, p2:PlayerActor) extends EnvGameActorMsg
+case class InitGame(p1:ActorRef, p2:ActorRef) extends EnvGameActorMsg
 case object StartGame extends EnvGameActorMsg
 case object WantToObserveGameState
 case class PointMade(tennisPlayerIdWithPoints: TennisPlayerIdWithPoints) extends EnvGameActorMsg
@@ -26,7 +26,7 @@ case object GameFinished extends InternalGameActorMsg
 
 sealed trait TennisGameFsmEvent
 case class LastPointMadeBy(tennisPlayerId: String) extends TennisGameFsmEvent
-case object GameStarted
+case object GameStarted extends TennisGameFsmEvent
 
 
 

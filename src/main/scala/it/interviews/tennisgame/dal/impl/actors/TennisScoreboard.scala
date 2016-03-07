@@ -10,7 +10,7 @@ import it.interviews.tennisgame.domain.impl.actors.{ListenerSubscription, Scores
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-class TennisScoreboard extends Scoreboard{
+class TennisScoreboard extends Scoreboard with Actor{
 
   private var player1:TennisPlayerIdWithPoints = null
   private var player2:TennisPlayerIdWithPoints = null
@@ -20,11 +20,12 @@ class TennisScoreboard extends Scoreboard{
       player1 = p1
       player2 = p2
       scoresHistory.push(TennisGameStateData(UpTo40Score(p1,p2),p1,p2))
+      context.system.log.info("setup"+scoresHistory.top);
       context.become(available)
   }
 
-  override protected def available:Receive = {
-    case ListenerSubscription(ar:ActorRef) => subscriber += ar
+  protected def available:Receive = {
+    case ListenerSubscription(ar:ActorRef) => context.system.log.info("adding"+ar); subscriber += ar
     case ScoresUpdate(ts:TennisScores) =>
       updateInternalCache(ts)
       scoresHistory.push(TennisGameStateData(ts,player1,player2))

@@ -1,12 +1,13 @@
 package it.interviews.tennisgame.boundary
 
 import akka.actor.Actor
+import akka.actor.Actor.Receive
 import it.interviews.tennisgame.domain.{PlayerIdWithPoints, GameStateData, Points, Scores}
 
 /**
   * Created by Pietro Brunetti on 05/03/16.
   */
-trait GameActor extends Actor{
+trait GameActor {
 
   protected def playing:Receive
 

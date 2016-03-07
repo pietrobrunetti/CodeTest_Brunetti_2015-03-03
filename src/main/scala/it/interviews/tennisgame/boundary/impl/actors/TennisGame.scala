@@ -1,8 +1,9 @@
 package it.interviews.tennisgame.boundary.impl.actors
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import it.interviews.tennisgame.boundary.{ParticipantActor, PlayerActor, GameActor}
 import it.interviews.tennisgame.controller.impl.actors.GameController
+import it.interviews.tennisgame.dal.Scoreboard
 import it.interviews.tennisgame.domain.impl.{WonScore, TennisPlayerIdWithPoints}
 import it.interviews.tennisgame.domain.{PlayerIdWithPoints, GameStateData, Points, Scores}
 import it.interviews.tennisgame.domain.impl.actors._
@@ -11,10 +12,16 @@ import it.interviews.tennisgame.dal.impl.actors.TennisScoreboard
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-class TennisGame extends GameActor{
+class TennisGame extends GameActor with Actor{
 
-  val ctrl = context.actorOf(Props[GameController],"GameController")
-  val scorer = context.actorOf(Props[TennisScoreboard],"Scoreboard")
+  var scorer = ActorRef.noSender
+  var ctrl = ActorRef.noSender
+
+  override def preStart() = {
+    ctrl = context.actorOf(Props[GameController],"GameController")
+    scorer = context.actorOf(Props[TennisScoreboard],"Scoreboard")
+  }
+
 
   override def receive: Receive = {
     case InitGame(p1:PlayerActor,p2:PlayerActor) => init(p1,p2)
@@ -22,8 +29,8 @@ class TennisGame extends GameActor{
   }
 
   override protected def playing:Receive = {
-    case WantToObserveGameState if sender().isInstanceOf[ParticipantActor] => registerNewParticipant(sender().asInstanceOf[ParticipantActor])
-    case PointMade if sender().isInstanceOf[PlayerActor] => managePointMade(sender().asInstanceOf[PlayerActor])
+    case WantToObserveGameState => registerNewParticipant(sender().asInstanceOf[ParticipantActor])
+    case PointMade(null) => managePointMade(sender().asInstanceOf[PlayerActor])
     case GameFinished => context.stop(ctrl)
     case StopGame => stop
   }
@@ -40,7 +47,7 @@ class TennisGame extends GameActor{
 
   override def getScores: Scores = ???
 
-  override protected def registerNewParticipant(participant:ParticipantActor) = scorer ! ListenerSubscription(participant.self)
+  override protected def registerNewParticipant(participant:ParticipantActor) = scorer ! ListenerSubscription(participant.getRef)
 
   override def managePointMade(p: PlayerActor): Unit = ctrl.forward(LastPointMadeBy(p.playerId))
 

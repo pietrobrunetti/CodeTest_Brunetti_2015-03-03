@@ -10,12 +10,11 @@ trait PlayerActor extends ParticipantActor{
 
   var personalPoints:Points = null
 
-  def playerId = self.path.name
+  def playerId:String
 
   protected def setInitialPoints(p:Points) = personalPoints = p
   protected def retrievePlayerPoints(p:PlayerActor):Points
   protected def makePoint
-  protected def joinGame
 }
 
 

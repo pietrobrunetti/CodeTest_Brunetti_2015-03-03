@@ -3,6 +3,7 @@ package it.interviews.tennisgame
 import akka.actor.Actor.Receive
 import akka.actor.{Props, ActorRef, ActorSystem}
 import akka.testkit._
+import it.interviews.tennisgame.boundary.impl.actors.{TennisPlayer, TennisGame}
 import it.interviews.tennisgame.boundary.{ParticipantActor, PlayerActor}
 import it.interviews.tennisgame.controller.impl.actors.GameController
 import it.interviews.tennisgame.dal.Scoreboard
@@ -112,14 +113,27 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
   }
 
   describe("Tennis Game Actor Behavior") {
+    it("should act as boundary compoent of the system") {
 
+      val tsRef = TestActorRef[TennisGame]
+
+      val p1 = new MyProbePlayerActor(system,"pp1")
+      val p2 = new MyProbePlayerActor(system,"pp2")
+
+      tsRef ! InitGame(p1.getRef,p2.getRef)
+
+      tsRef ! StartGame
+
+      tsRef.tell(WantToObserveGameState,p1.getRef)
+      tsRef.tell(WantToObserveGameState,p2.getRef)
+
+      tsRef.tell(PointMade(null),p1.getRef)
+
+      p1.expectMsg(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("pp1",TennisPoints(0)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))),TennisPlayerIdWithPoints("pp1",TennisPoints(0)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))))
+
+    }
 
   }
-
-
-
-  //override def beforeAll() = ???
-  //override def afterAll() = ???
 
 }
 

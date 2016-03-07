@@ -1,7 +1,7 @@
 package it.interviews.tennisgame.controller.impl.actors
 
 import akka.actor.FSM.State
-import akka.actor.{FSM}
+import akka.actor.{ActorRef, FSM}
 import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors._
 import it.interviews.tennisgame.dal.Scoreboard
@@ -14,7 +14,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
   startWith(Idle, Uninitialized)
 
   when(Idle) {
-    case Event(GameConfig(p1:String,p2:String,scorer:Scoreboard), Uninitialized) =>
+    case Event(GameConfig(p1:String,p2:String,scorer:ActorRef), Uninitialized) =>
       goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1,Love()),TennisPlayerIdWithPoints(p2,Love())),p1,p2,scorer)
   }
 
@@ -44,10 +44,14 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
     case Event(LastPointMadeBy(pId:String),MatchSnapshot(AdvantageScore(p),p1Id,p2Id,scorer)) =>
       GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]) {
         pId match {
-          case p.playerId => goto(Won) using MatchSnapshot(WonScore(p),p1Id,p2Id,scorer)
+          case p.playerId => goto(Won) using MatchSnapshot(WonScore(TennisPlayerIdWithPoints(p.playerId,TennisPoints(p.points.value+1))),p1Id,p2Id,scorer)
           case _ => goto(Deuce) using MatchSnapshot(DeuceScore(p.points),p1Id,p2Id,scorer)
         }
       }(stop(FSM.Failure(), stateData))
+  }
+
+  when(Won) {
+    case _ => stay using stateData
   }
 
   whenUnhandled {
@@ -58,16 +62,16 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
 
   onTransition {
     case Idle -> Initial =>
-      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInfo(p1,p2)}
+      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer ! SetPlayerInfo(p1,p2)}
 
-    case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
-    case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
-    case UpTo40 -> Won => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
-    case Deuce -> Advantage => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
-    case Advantage -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
+    case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
+    case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
+    case UpTo40 -> Won => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
+    case Deuce -> Advantage => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
+    case Advantage -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
     case Advantage -> Won => nextStateData match {
       case MatchSnapshot(score,p1Id,p2Id,scorer) =>
-        scorer.self ! ScoresUpdate(score)
+        scorer ! ScoresUpdate(score)
         context.parent ! GameFinished
     }
 

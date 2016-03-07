@@ -209,7 +209,7 @@ class DomainTestSuite extends FunSpec {
     it("Its scores of type 'Won' must be correlated " +
       "to the corresponding Players' point types",DomainTest,TennisGameStateDataTest) {
 
-      TennisGameStateData(WonScore(TennisPlayerIdWithPoints("DummyPlayer02",TennisPoints(4))),TennisPlayerIdWithPoints("DummyPlayer02",TennisPoints(4)),TennisPlayerIdWithPoints("DummyPlayer03",Thirty()))
+      TennisGameStateData(WonScore(TennisPlayerIdWithPoints("DummyPlayer02",TennisPoints(4))),TennisPlayerIdWithPoints("DummyPlayer02",TennisPoints(4)),TennisPlayerIdWithPoints("DummyPlayer03",Love()))
       TennisGameStateData(WonScore(TennisPlayerIdWithPoints("DummyPlayer03",TennisPoints(6))),TennisPlayerIdWithPoints("DummyPlayer02",Forty()),TennisPlayerIdWithPoints("DummyPlayer03",TennisPoints(6)))
 
       intercept[IllegalArgumentException] {

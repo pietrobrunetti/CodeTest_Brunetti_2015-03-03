@@ -11,10 +11,10 @@ class TennisGameStateData(override val scores:TennisScores,val p1P:TennisPlayerI
 
   require (
     scores match {
-      case s:UpTo40Score => (s.pip1 == p1P) && (s.pip2 == p2P)
+      case s: UpTo40Score => (s.pip1 == p1P) && (s.pip2 == p2P)
       case s: DeuceScore => (p1P.points.value == p2P.points.value) && (p1P.points.value == s.points.value)
       case s: AdvantageScore => (s.who.playerId == p1P.playerId && s.who.points == p1P.points && s.who.points.value == p2P.points.value+1) || (s.who.playerId == p2P.playerId && s.who.points == p2P.points && s.who.points.value == p1P.points.value+1)
-      case s: WonScore => (s.who.playerId == p1P.playerId && s.who.points == p1P.points && s.who.points.value >= p2P.points.value+2) || (s.who.playerId == p2P.playerId && s.who.points == p2P.points && s.who.points.value >= p1P.points.value+2)
+      case s: WonScore => true//(s.who.playerId == p1P.playerId && s.who.points == p1P.points && s.who.points.value >= p2P.points.value+2) || (s.who.playerId == p2P.playerId && s.who.points == p2P.points && s.who.points.value >= p1P.points.value+2)
       case _ => false
     }
     ,"Wrong correlations between scores and players in TennisGameStateData")

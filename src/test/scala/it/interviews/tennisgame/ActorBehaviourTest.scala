@@ -68,25 +68,51 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       assert(fsm.stateName==Idle)
       assert(fsm.stateData==Uninitialized)
 
-      val tsRef = system.actorOf(Props[TennisScoreboard])
+      val tsRef = TestActorRef[TennisScoreboard]
 
-      fsm ! GameConfig("p2","p1",tsRef)
+      fsm ! GameConfig("p1","p2",tsRef)
 
       assert(fsm.stateName==Initial)
-      assert(fsm.stateData==MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef.asInstanceOf[Scoreboard]))
-
-      expectMsg(SetPlayerInfo)
+      assert(fsm.stateData==MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
       fsm ! GameStarted
       assert(fsm.stateName == UpTo40)
-      assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef.asInstanceOf[Scoreboard]))
+      assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
+      fsm ! LastPointMadeBy("p1")
+      assert(fsm.stateName == UpTo40)
+      assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Fifteen()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
+      fsm.setState(UpTo40,MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Forty()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
+
+      fsm ! LastPointMadeBy("p1")
+      assert(fsm.stateName == Won)
+      assert(fsm.stateData == MatchSnapshot(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
+
+      fsm.setState(UpTo40,MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Forty()),TennisPlayerIdWithPoints("p2",Thirty())),"p1","p2",tsRef))
+
+      fsm ! LastPointMadeBy("p2")
+      assert(fsm.stateName == Deuce)
+      assert(fsm.stateData == MatchSnapshot(DeuceScore(TennisPoints(3)),"p1","p2",tsRef))
+
+      fsm ! LastPointMadeBy("p1")
+      assert(fsm.stateName == Advantage)
+      assert(fsm.stateData == MatchSnapshot(AdvantageScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
+
+      fsm ! LastPointMadeBy("p1")
+      assert(fsm.stateName == Won)
+      assert(fsm.stateData == MatchSnapshot(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(5))),"p1","p2",tsRef))
+
+      fsm.setState(Advantage,MatchSnapshot(AdvantageScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
+      fsm ! LastPointMadeBy("p2")
+      assert(fsm.stateName == Deuce)
+      assert(fsm.stateData == MatchSnapshot(DeuceScore(TennisPoints(4)),"p1","p2",tsRef))
 
     }
   }
 
-  describe("Tennis Game Actor") {
+  describe("Tennis Game Actor Behavior") {
+
 
   }
 

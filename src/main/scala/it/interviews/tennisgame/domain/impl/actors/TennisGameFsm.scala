@@ -19,5 +19,5 @@ case object Won extends TennisGameFsmState
 
 sealed trait TennisGameFsmData
 case object Uninitialized extends TennisGameFsmData
-case class MatchSnapshot(actualScores:TennisScores, player1Id:String, player2Id:String, scorer: Scoreboard) extends TennisGameFsmData
+case class MatchSnapshot(actualScores:TennisScores, player1Id:String, player2Id:String, scorer: ActorRef) extends TennisGameFsmData
 

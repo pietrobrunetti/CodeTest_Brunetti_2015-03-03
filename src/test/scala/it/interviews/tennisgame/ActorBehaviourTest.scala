@@ -1,13 +1,15 @@
 package it.interviews.tennisgame
 
 import akka.actor.Actor.Receive
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestProbe, TestActorRef, ImplicitSender, TestKit}
+import akka.actor.{Props, ActorRef, ActorSystem}
+import akka.testkit._
 import it.interviews.tennisgame.boundary.{ParticipantActor, PlayerActor}
+import it.interviews.tennisgame.controller.impl.actors.GameController
+import it.interviews.tennisgame.dal.Scoreboard
 import it.interviews.tennisgame.dal.impl.actors.TennisScoreboard
 import it.interviews.tennisgame.domain.{Points, Scores, GameStateData}
 import it.interviews.tennisgame.domain.impl._
-import it.interviews.tennisgame.domain.impl.actors.{ListenerSubscription, ScoresUpdate, SetPlayerInfo}
+import it.interviews.tennisgame.domain.impl.actors._
 import org.scalatest.{FunSpecLike, BeforeAndAfterAll, BeforeAndAfter}
 
 /**
@@ -18,7 +20,7 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
   with ImplicitSender
   with FunSpecLike {
 
-  describe("Tennis Scoreboard") {
+  describe("Tennis Scoreboard Behavior") {
 
 
 
@@ -57,6 +59,31 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
 
 
 
+  }
+
+  describe("Game Controller Behavior") {
+    it("should move between state while changing internal state") {
+      val fsm = TestFSMRef(new GameController)
+
+      assert(fsm.stateName==Idle)
+      assert(fsm.stateData==Uninitialized)
+
+      val tsRef = system.actorOf(Props[TennisScoreboard])
+
+      fsm ! GameConfig("p2","p1",tsRef)
+
+      assert(fsm.stateName==Initial)
+      assert(fsm.stateData==MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef.asInstanceOf[Scoreboard]))
+
+      expectMsg(SetPlayerInfo)
+
+      fsm ! GameStarted
+      assert(fsm.stateName == UpTo40)
+      assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef.asInstanceOf[Scoreboard]))
+
+
+
+    }
   }
 
   describe("Tennis Game Actor") {

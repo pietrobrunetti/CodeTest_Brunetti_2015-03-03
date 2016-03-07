@@ -17,5 +17,6 @@ trait GameActor extends Actor{
   protected def getScores:Scores
   protected def getLeadPlayer:PlayerIdWithPoints
   protected def getGameState:GameStateData
+  protected def registerNewParticipant(participant:ParticipantActor)
   protected def stop
 }

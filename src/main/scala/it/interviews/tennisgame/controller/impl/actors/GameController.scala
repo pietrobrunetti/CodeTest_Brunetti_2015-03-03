@@ -58,10 +58,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
 
   onTransition {
     case Idle -> Initial =>
-      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInfo(p1.playerId,p2.playerId)}
-
-    case Initial -> UpTo40 =>
-      stateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInitialPoints(p1,p2)}
+      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer.self ! SetPlayerInfo(p1,p2)}
 
     case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}
     case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer.self ! ScoresUpdate(score)}

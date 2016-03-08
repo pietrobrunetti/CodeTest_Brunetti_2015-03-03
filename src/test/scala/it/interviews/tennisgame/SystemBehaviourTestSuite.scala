@@ -13,7 +13,7 @@ class SystemBehaviourTestSuite extends TestKit(ActorSystem("testSystem"))
 
   describe("System Behavior Test") {
 
-    ignore("")
+
 
   }
 

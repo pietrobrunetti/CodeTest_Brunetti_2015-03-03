@@ -17,14 +17,18 @@ package object tennisgame {
   object TennisScoresTest extends Tag("it.interviews.tags.domain.TennisScoresTest")
   object TennisGameStateDataTest extends Tag("it.interviews.tags.domain.TennisGameStateDataTest")
 
-  class MyProbePlayerActor(as:ActorSystem,name:String) extends TestProbe(as,name) with PlayerActor{
-    override def playerId: String = name
-    override protected def retrievePlayerPoints(p: PlayerActor): Points = ???
-    override protected def makePoint: Unit = ???
-    override protected def retrieveScores: Scores = ???
-    override protected def retrieveGameState: GameStateData = ???
+  class MyPlayerTestProbe(actorSystem: ActorSystem, name:String) extends TestProbe(actorSystem,name) with PlayerActor {
+    override def playerId: String = this.ref.path.name
 
-    override def getRef: ActorRef = ref
+    override protected def retrievePlayerPoints(p: PlayerActor): Points = ???
+
+    override protected def makePoint: Unit = ???
+
+    override def actor: ActorRef = ref
+
+    override protected def retrieveScores: Scores = ???
+
+    override protected def retrieveGameState: GameStateData = ???
   }
 
 }

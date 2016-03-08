@@ -1,6 +1,6 @@
 package it.interviews.tennisgame.boundary
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{ActorRef}
 import it.interviews.tennisgame.domain.{GameStateData, Points, Scores}
 
 /**
@@ -8,7 +8,7 @@ import it.interviews.tennisgame.domain.{GameStateData, Points, Scores}
   */
 trait ParticipantActor {
 
-  def getRef:ActorRef
+  def actor:ActorRef
 
   protected def retrievePlayerPoints(p:PlayerActor):Points
   protected def retrieveScores:Scores

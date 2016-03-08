@@ -23,8 +23,6 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
 
   describe("Tennis Scoreboard Behavior") {
 
-
-
     it("should store current player info and scores") {
       val tsRef = TestActorRef[TennisScoreboard]
       tsRef ! SetPlayerInfo(TennisPlayerIdWithPoints("dummy1",TennisPoints(0)),TennisPlayerIdWithPoints("dummy2",TennisPoints(0)))
@@ -42,12 +40,13 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
 
     it("should inform particpant when an pdate occour") {
       val tsRef = TestActorRef[TennisScoreboard]
-      val tsSub01 = TestProbe()
-      val tsSub02 = TestProbe()
+
+      val tsSub01 = new MyPlayerTestProbe(system,"dum01")
+      val tsSub02 = new MyPlayerTestProbe(system,"dum02")
       tsRef ! SetPlayerInfo(TennisPlayerIdWithPoints("dum01",TennisPoints(0)),TennisPlayerIdWithPoints("dum02",TennisPoints(0)))
 
-      tsRef ! ListenerSubscription(tsSub01.ref)
-      tsRef ! ListenerSubscription(tsSub02.ref)
+      tsRef ! ListenerSubscription(tsSub01)
+      tsRef ! ListenerSubscription(tsSub02)
 
       tsRef ! ScoresUpdate(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))))
 
@@ -57,10 +56,9 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       tsSub02.expectMsg(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))),
         TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))))
     }
-
-
-
   }
+
+
 
   describe("Game Controller Behavior") {
     it("should move between state while changing internal state") {
@@ -80,13 +78,24 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       assert(fsm.stateName == UpTo40)
       assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Love()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("p1",TennisPoints(0)),TennisPlayerIdWithPoints("p2",TennisPoints(0))),
+        TennisPlayerIdWithPoints("p1",TennisPoints(0)),TennisPlayerIdWithPoints("p2",TennisPoints(0))))
+
       fsm ! LastPointMadeBy("p1")
+
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("p1",TennisPoints(1)),TennisPlayerIdWithPoints("p2",TennisPoints(0))),
+        TennisPlayerIdWithPoints("p1",TennisPoints(1)),TennisPlayerIdWithPoints("p2",TennisPoints(0))))
+
       assert(fsm.stateName == UpTo40)
       assert(fsm.stateData == MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Fifteen()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
       fsm.setState(UpTo40,MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints("p1",Forty()),TennisPlayerIdWithPoints("p2",Love())),"p1","p2",tsRef))
 
       fsm ! LastPointMadeBy("p1")
+
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),
+        TennisPlayerIdWithPoints("p1",TennisPoints(4)),TennisPlayerIdWithPoints("p2",TennisPoints(0))))
+
       assert(fsm.stateName == Won)
       assert(fsm.stateData == MatchSnapshot(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
 
@@ -96,16 +105,31 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       assert(fsm.stateName == Deuce)
       assert(fsm.stateData == MatchSnapshot(DeuceScore(TennisPoints(3)),"p1","p2",tsRef))
 
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(DeuceScore(TennisPoints(3)),
+        TennisPlayerIdWithPoints("p1",TennisPoints(3)),TennisPlayerIdWithPoints("p2",TennisPoints(3))))
+
       fsm ! LastPointMadeBy("p1")
+
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(AdvantageScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),
+        TennisPlayerIdWithPoints("p1",TennisPoints(4)),TennisPlayerIdWithPoints("p2",TennisPoints(3))))
+
       assert(fsm.stateName == Advantage)
       assert(fsm.stateData == MatchSnapshot(AdvantageScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
 
       fsm ! LastPointMadeBy("p1")
+
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(5))),
+        TennisPlayerIdWithPoints("p1",TennisPoints(5)),TennisPlayerIdWithPoints("p2",TennisPoints(3))))
+
       assert(fsm.stateName == Won)
       assert(fsm.stateData == MatchSnapshot(WonScore(TennisPlayerIdWithPoints("p1",TennisPoints(5))),"p1","p2",tsRef))
 
       fsm.setState(Advantage,MatchSnapshot(AdvantageScore(TennisPlayerIdWithPoints("p1",TennisPoints(4))),"p1","p2",tsRef))
       fsm ! LastPointMadeBy("p2")
+
+      assertResult(tsRef.underlyingActor.scoresHistory.top)(TennisGameStateData(DeuceScore(TennisPoints(4)),
+        TennisPlayerIdWithPoints("p1",TennisPoints(4)),TennisPlayerIdWithPoints("p2",TennisPoints(4))))
+
       assert(fsm.stateName == Deuce)
       assert(fsm.stateData == MatchSnapshot(DeuceScore(TennisPoints(4)),"p1","p2",tsRef))
 
@@ -117,19 +141,21 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
 
       val tsRef = TestActorRef[TennisGame]
 
-      val p1 = new MyProbePlayerActor(system,"pp1")
-      val p2 = new MyProbePlayerActor(system,"pp2")
+      val p1 = new MyPlayerTestProbe(system,"pp1")
+      val p2 = new MyPlayerTestProbe(system,"pp2")
 
-      tsRef ! InitGame(p1.getRef,p2.getRef)
+      tsRef ! InitGame(p1,p2)
 
       tsRef ! StartGame
 
-      tsRef.tell(WantToObserveGameState,p1.getRef)
-      tsRef.tell(WantToObserveGameState,p2.getRef)
+      tsRef.tell(WantToObserveGameState(p1),p1.actor)
+      tsRef.tell(WantToObserveGameState(p2),p2.actor)
 
-      tsRef.tell(PointMade(null),p1.getRef)
+      tsRef.tell(PointMade(null,p1),p1.actor)
 
-      p1.expectMsg(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("pp1",TennisPoints(0)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))),TennisPlayerIdWithPoints("pp1",TennisPoints(0)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))))
+      p1.expectMsg(TennisGameStateData(
+        UpTo40Score(TennisPlayerIdWithPoints("pp1-2",TennisPoints(1)),TennisPlayerIdWithPoints("pp2-3",TennisPoints(0))),
+        TennisPlayerIdWithPoints("pp1-2",TennisPoints(1)),TennisPlayerIdWithPoints("pp2-3",TennisPoints(0))))
 
     }
 

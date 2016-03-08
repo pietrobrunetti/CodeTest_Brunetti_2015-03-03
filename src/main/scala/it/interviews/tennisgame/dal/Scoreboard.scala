@@ -14,7 +14,7 @@ import scala.collection.mutable
   */
 trait Scoreboard {
 
-  var subscriber = mutable.ListBuffer[ActorRef]()
+  var subscriber = mutable.ListBuffer[ParticipantActor]()
   var scoresHistory = mutable.Stack[TennisGameStateData]()
 
   protected def updateInternalCache(scores:TennisScores)

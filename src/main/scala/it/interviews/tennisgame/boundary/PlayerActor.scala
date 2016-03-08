@@ -8,7 +8,7 @@ import it.interviews.tennisgame.domain.impl.{Love, TennisPoints}
   */
 trait PlayerActor extends ParticipantActor{
 
-  var personalPoints:Points = null
+  var personalPoints:Points = _
 
   def playerId:String
 

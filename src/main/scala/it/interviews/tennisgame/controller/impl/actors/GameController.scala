@@ -26,7 +26,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
     case Event(LastPointMadeBy(pId:String),MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer)) =>
       GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]){
         TennisScores(p1,p2,Some(pId)) match {
-          case s:UpTo40Score => stay using MatchSnapshot(s,p1Id,p2Id,scorer)
+          case s:UpTo40Score => scorer ! ScoresUpdate(s); stay using MatchSnapshot(s,p1Id,p2Id,scorer)
           case s:DeuceScore => goto(Deuce) using MatchSnapshot(s,p1Id,p2Id,scorer)
           case s:WonScore => goto(Won) using MatchSnapshot(s,p1Id,p2Id,scorer)
         }

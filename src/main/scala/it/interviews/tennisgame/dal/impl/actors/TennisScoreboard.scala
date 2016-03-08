@@ -2,7 +2,7 @@ package it.interviews.tennisgame.dal.impl.actors
 
 import akka.actor.{ActorRef, Actor}
 import akka.actor.Actor.Receive
-import it.interviews.tennisgame.boundary.ParticipantActor
+import it.interviews.tennisgame.boundary.{PlayerActor, ParticipantActor}
 import it.interviews.tennisgame.dal.Scoreboard
 import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors.{ListenerSubscription, ScoresUpdate, SetPlayerInfo}
@@ -20,12 +20,11 @@ class TennisScoreboard extends Scoreboard with Actor{
       player1 = p1
       player2 = p2
       scoresHistory.push(TennisGameStateData(UpTo40Score(p1,p2),p1,p2))
-      context.system.log.info("setup"+scoresHistory.top);
       context.become(available)
   }
 
   protected def available:Receive = {
-    case ListenerSubscription(ar:ActorRef) => context.system.log.info("adding"+ar); subscriber += ar
+    case ListenerSubscription(pa:ParticipantActor) => subscriber += pa
     case ScoresUpdate(ts:TennisScores) =>
       updateInternalCache(ts)
       scoresHistory.push(TennisGameStateData(ts,player1,player2))
@@ -34,7 +33,7 @@ class TennisScoreboard extends Scoreboard with Actor{
 
   override protected def spawnUpdateToSubscribers: Unit = {
     val currentGameStatus:TennisGameStateData = scoresHistory.top
-    subscriber.foreach(sub=>sub.tell(currentGameStatus,ActorRef.noSender))
+    subscriber.foreach(sub=>sub.actor.tell(currentGameStatus,this.self))
   }
 
   override protected def updateInternalCache(scores:TennisScores) = {

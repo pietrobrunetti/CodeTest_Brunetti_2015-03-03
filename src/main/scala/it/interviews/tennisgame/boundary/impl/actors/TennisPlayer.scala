@@ -9,9 +9,11 @@ import it.interviews.tennisgame.domain.{GameStateData, Points, Scores}
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-class TennisPlayer extends PlayerActor with Actor{
+class TennisPlayer(actorSystem: ActorSystem,id:String) extends PlayerActor {
 
-  override def playerId: String = self.path.name
+  override val actor = actorSystem.actorOf(Props[InternalPlayerActor],id)
+
+  override def playerId: String = actor.path.name
 
   override protected def makePoint: Unit = ???
 
@@ -21,10 +23,11 @@ class TennisPlayer extends PlayerActor with Actor{
 
   override protected def retrievePlayerPoints(p: PlayerActor): Points = ???
 
-  override def receive: Actor.Receive = {
-    case x:TennisGameStateData => context.system.log.info("Scores are been Updated! "+x)
+  private class InternalPlayerActor extends Actor {
+    override def receive: Actor.Receive = {
+      case x:TennisGameStateData => context.system.log.info("Scores are been Updated! "+x);
+    }
   }
 
-  override def getRef: ActorRef = self
 }
 

@@ -2,9 +2,12 @@ package it.interviews.tennisgame.controller.impl.actors
 
 import akka.actor.FSM.State
 import akka.actor.{ActorRef, FSM}
+import it.interviews.tennisgame.boundary.impl.actors._
 import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors._
-import it.interviews.tennisgame.dal.Scoreboard
+import akka.pattern.ask
+
+import scala.concurrent.Await
 
 /**
   * Created by Pietro Brunetti on 04/03/16.
@@ -15,7 +18,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
 
   when(Idle) {
     case Event(GameConfig(p1:String,p2:String,scorer:ActorRef), Uninitialized) =>
-      goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1,Love()),TennisPlayerIdWithPoints(p2,Love())),p1,p2,scorer)
+      goto(Initial) using MatchSnapshot(UpTo40Score(TennisPlayerIdWithPoints(p1, Love()), TennisPlayerIdWithPoints(p2, Love())), p1, p2, scorer)
   }
 
   when(Initial) {
@@ -26,7 +29,7 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
     case Event(LastPointMadeBy(pId:String),MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer)) =>
       GameController.ctrlInputId(pId,stateData.asInstanceOf[MatchSnapshot]){
         TennisScores(p1,p2,Some(pId)) match {
-          case s:UpTo40Score => scorer ! ScoresUpdate(s); stay using MatchSnapshot(s,p1Id,p2Id,scorer)
+          case s:UpTo40Score => { sender() ! Await.result(ask(scorer, ScoresUpdate(s),sender()).mapTo[String],defaultFiniteDureationAsk); stay using MatchSnapshot(s,p1Id,p2Id,scorer)}
           case s:DeuceScore => goto(Deuce) using MatchSnapshot(s,p1Id,p2Id,scorer)
           case s:WonScore => goto(Won) using MatchSnapshot(s,p1Id,p2Id,scorer)
         }
@@ -61,17 +64,15 @@ class GameController extends FSM[TennisGameFsmState,TennisGameFsmData]{
   }
 
   onTransition {
-    case Idle -> Initial =>
-      nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer ! SetPlayerInfo(p1,p2)}
-
-    case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
-    case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
-    case UpTo40 -> Won => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
-    case Deuce -> Advantage => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
-    case Advantage -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => scorer ! ScoresUpdate(score)}
+    case Idle -> Initial => nextStateData match {case MatchSnapshot(UpTo40Score(p1,p2),p1Id,p2Id,scorer) => scorer ! SetPlayerInfo(p1,p2); sender() ! Initial}
+    case UpTo40 -> UpTo40 => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) =>  sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)}
+    case UpTo40 -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)}
+    case UpTo40 -> Won => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)}
+    case Deuce -> Advantage => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)}
+    case Advantage -> Deuce => nextStateData match {case MatchSnapshot(score,p1Id,p2Id,scorer) => sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)}
     case Advantage -> Won => nextStateData match {
       case MatchSnapshot(score,p1Id,p2Id,scorer) =>
-        scorer ! ScoresUpdate(score)
+        sender() ! Await.result(ask(scorer, ScoresUpdate(score),sender()).mapTo[String],defaultFiniteDureationAsk)
         context.parent ! GameFinished
     }
 

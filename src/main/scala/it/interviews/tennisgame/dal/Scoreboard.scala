@@ -1,11 +1,7 @@
 package it.interviews.tennisgame.dal
 
-import java.util.concurrent.Exchanger.Participant
-
-import akka.actor.Actor.Receive
-import akka.actor.{ActorRef, Actor}
 import it.interviews.tennisgame.boundary.ParticipantActor
-import it.interviews.tennisgame.domain.impl.{TennisScores, TennisGameStateData}
+import it.interviews.tennisgame.domain.impl.{TennisGameStateData, TennisScores}
 
 import scala.collection.mutable
 
@@ -17,8 +13,9 @@ trait Scoreboard {
   var subscriber = mutable.ListBuffer[ParticipantActor]()
   var scoresHistory = mutable.Stack[TennisGameStateData]()
 
-  protected def updateInternalCache(scores:TennisScores)
-  protected def spawnUpdateToSubscribers
+  protected def updateInternalCache(scores:TennisScores):Unit
+  protected def spawnUpdateToSubscribers():Unit
+  protected def informAboutScoresState():TennisScores
 
 
 }

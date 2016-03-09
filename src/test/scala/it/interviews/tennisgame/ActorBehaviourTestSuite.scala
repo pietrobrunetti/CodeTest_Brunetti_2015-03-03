@@ -1,22 +1,18 @@
 package it.interviews.tennisgame
 
-import akka.actor.Actor.Receive
-import akka.actor.{Props, ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit._
-import it.interviews.tennisgame.boundary.impl.actors.{TennisPlayer, TennisGame}
-import it.interviews.tennisgame.boundary.{ParticipantActor, PlayerActor}
+import it.interviews.tennisgame.boundary.impl.actors.TennisGame
 import it.interviews.tennisgame.controller.impl.actors.GameController
-import it.interviews.tennisgame.dal.Scoreboard
 import it.interviews.tennisgame.dal.impl.actors.TennisScoreboard
-import it.interviews.tennisgame.domain.{Points, Scores, GameStateData}
 import it.interviews.tennisgame.domain.impl._
 import it.interviews.tennisgame.domain.impl.actors._
-import org.scalatest.{FunSpecLike, BeforeAndAfterAll, BeforeAndAfter}
+import org.scalatest.FunSpecLike
 
 /**
   * Created by Pietro Brunetti on 07/03/16.
   */
-class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
+class ActorBehaviourTestSuite extends TestKit(ActorSystem("componentsSystem"))
   //with BeforeAndAfter //with BeforeAndAfterAll
   with ImplicitSender
   with FunSpecLike {
@@ -38,7 +34,7 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       assertResult(tsRef.underlyingActor.scoresHistory.top.scores)(DeuceScore(Forty()))
     }
 
-    it("should inform particpant when an pdate occour") {
+    it("can inform particpant when an update occour in a push fashion") {
       val tsRef = TestActorRef[TennisScoreboard]
 
       val tsSub01 = new MyPlayerTestProbe(system,"dum01")
@@ -55,6 +51,25 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
 
       tsSub02.expectMsg(TennisGameStateData(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))),
         TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))))
+    }
+
+    it("can inform particpant when an update occour in a pull fashion") {
+      val tsRef = TestActorRef[TennisScoreboard]
+
+      val tsSub01 = new MyPlayerTestProbe(system,"dum01")
+      val tsSub02 = new MyPlayerTestProbe(system,"dum02")
+      tsRef ! SetPlayerInfo(TennisPlayerIdWithPoints("dum01",TennisPoints(0)),TennisPlayerIdWithPoints("dum02",TennisPoints(0)))
+
+      tsRef.tell(ScoresState,tsSub01.actor)
+
+      tsSub01.expectMsg(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(0)),TennisPlayerIdWithPoints("dum02",TennisPoints(0))))
+
+      tsRef ! ScoresUpdate(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))))
+
+      tsRef.tell(ScoresState,tsSub02.actor)
+
+      tsSub02.expectMsg(UpTo40Score(TennisPlayerIdWithPoints("dum01",TennisPoints(3)),TennisPlayerIdWithPoints("dum02",TennisPoints(1))))
+
     }
   }
 
@@ -137,7 +152,7 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
   }
 
   describe("Tennis Game Actor Behavior") {
-    it("should act as boundary compoent of the system") {
+    it("should act as boundary component of the system") {
 
       val tsRef = TestActorRef[TennisGame]
 
@@ -154,8 +169,12 @@ class ActorBehaviourTest extends TestKit(ActorSystem("componentsSystem"))
       tsRef.tell(PointMade(null,p1),p1.actor)
 
       p1.expectMsg(TennisGameStateData(
-        UpTo40Score(TennisPlayerIdWithPoints("pp1-2",TennisPoints(1)),TennisPlayerIdWithPoints("pp2-3",TennisPoints(0))),
-        TennisPlayerIdWithPoints("pp1-2",TennisPoints(1)),TennisPlayerIdWithPoints("pp2-3",TennisPoints(0))))
+        UpTo40Score(TennisPlayerIdWithPoints("pp1",TennisPoints(1)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))),
+        TennisPlayerIdWithPoints("pp1",TennisPoints(1)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))))
+
+      p2.expectMsg(TennisGameStateData(
+        UpTo40Score(TennisPlayerIdWithPoints("pp1",TennisPoints(1)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))),
+        TennisPlayerIdWithPoints("pp1",TennisPoints(1)),TennisPlayerIdWithPoints("pp2",TennisPoints(0))))
 
     }
 

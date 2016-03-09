@@ -1,39 +1,48 @@
 package it.interviews.tennisgame.dal.impl.actors
 
-import akka.actor.{ActorRef, Actor}
-import akka.actor.Actor.Receive
-import it.interviews.tennisgame.boundary.{PlayerActor, ParticipantActor}
+import akka.actor.{Actor, ActorLogging}
+import it.interviews.tennisgame.boundary.ParticipantActor
 import it.interviews.tennisgame.dal.Scoreboard
 import it.interviews.tennisgame.domain.impl._
-import it.interviews.tennisgame.domain.impl.actors.{ListenerSubscription, ScoresUpdate, SetPlayerInfo}
+import it.interviews.tennisgame.domain.impl.actors.{ScoresState, ListenerSubscription, ScoresUpdate, SetPlayerInfo}
 
 /**
   * Created by Pietro Brunetti on 04/03/16.
   */
-class TennisScoreboard extends Scoreboard with Actor{
+class TennisScoreboard extends Scoreboard with Actor with ActorLogging{
 
   private var player1:TennisPlayerIdWithPoints = null
   private var player2:TennisPlayerIdWithPoints = null
 
   override def receive: Receive = {
-    case SetPlayerInfo(p1:TennisPlayerIdWithPoints,p2:TennisPlayerIdWithPoints) =>
+
+    case SetPlayerInfo(p1:TennisPlayerIdWithPoints,p2:TennisPlayerIdWithPoints) => {
       player1 = p1
       player2 = p2
-      scoresHistory.push(TennisGameStateData(UpTo40Score(p1,p2),p1,p2))
-      context.become(available)
-  }
-
-  protected def available:Receive = {
-    case ListenerSubscription(pa:ParticipantActor) => subscriber += pa
-    case ScoresUpdate(ts:TennisScores) =>
+      scoresHistory.push(TennisGameStateData(UpTo40Score(p1, p2), p1, p2))
+    }
+    case ListenerSubscription(pa:ParticipantActor) => {
+      subscriber += pa
+    }
+    case ScoresUpdate(ts:TennisScores) => {
       updateInternalCache(ts)
-      scoresHistory.push(TennisGameStateData(ts,player1,player2))
+      scoresHistory.push(TennisGameStateData(ts, player1, player2))
+      sender() ! "Ok"
       spawnUpdateToSubscribers
+
+    }
+    case ScoresState => {
+      sender ! informAboutScoresState
+    }
   }
 
   override protected def spawnUpdateToSubscribers: Unit = {
     val currentGameStatus:TennisGameStateData = scoresHistory.top
-    subscriber.foreach(sub=>sub.actor.tell(currentGameStatus,this.self))
+    subscriber.foreach(sub=>sub.actor.tell(currentGameStatus,self ))
+  }
+
+  protected def informAboutScoresState: TennisScores = {
+    scoresHistory.top.scores
   }
 
   override protected def updateInternalCache(scores:TennisScores) = {
@@ -55,4 +64,5 @@ class TennisScoreboard extends Scoreboard with Actor{
       }
     }
   }
+
 }

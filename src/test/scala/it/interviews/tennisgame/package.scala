@@ -1,10 +1,9 @@
 package it.interviews
 
-import akka.actor.Actor.Receive
-import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import it.interviews.tennisgame.boundary.PlayerActor
-import it.interviews.tennisgame.domain.{Points, Scores, GameStateData}
+import it.interviews.tennisgame.domain.{GameStateData, Points, Scores}
 import org.scalatest.Tag
 
 /**
@@ -18,7 +17,7 @@ package object tennisgame {
   object TennisGameStateDataTest extends Tag("it.interviews.tags.domain.TennisGameStateDataTest")
 
   class MyPlayerTestProbe(actorSystem: ActorSystem, name:String) extends TestProbe(actorSystem,name) with PlayerActor {
-    override def playerId: String = this.ref.path.name
+    override def playerId: String = name
 
     override protected def retrievePlayerPoints(p: PlayerActor): Points = ???
 

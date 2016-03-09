@@ -1,6 +1,5 @@
 package it.interviews.tennisgame
 
-import it.interviews.tennisgame.domain._
 import it.interviews.tennisgame.domain.impl._
 import org.scalatest.FunSpec
 
@@ -62,11 +61,6 @@ class DomainTestSuite extends FunSpec {
 
       }
 
-      it("should has Points of type 'FirstThreeTennisPoints'", DomainTest,TennisScoresTest) {
-        intercept[IllegalArgumentException] {
-          UpTo40Score(TennisPlayerIdWithPoints("DummyPlayer3", TennisPoints(1)), TennisPlayerIdWithPoints("DummyPlayer4", Fifteen()))
-        }
-      }
     }
 
 
